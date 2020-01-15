@@ -1,6 +1,7 @@
 import pandas
 import pandasql
 import csv
+import datetime
 
 
 def num_rainy_days(filename):
@@ -89,6 +90,44 @@ def fix_turnstile_data(filenames):
             with open('updated_'+name, 'wt') as m:
                 writer = csv.writer(m)
                 writer.writerows(result)
+
+
+def create_master_turnstile_file(filenames, output_file):
+    with open(output_file, 'w') as master_file:
+        master_file.write('C/A,UNIT,SCP,DATEn,TIMEn,DESCn,ENTRIESn,EXITSn\n')
+        for filename in filenames:
+            with open(filename, 'r') as input_file:
+                for line in input_file:
+                    master_file.write(line)
+
+
+def filter_by_regular(filename):
+    turnstile_data = pandas.read_csv(filename)
+    turnstile_data = turnstile_data[turnstile_data['DESCn'] == 'REGULAR']
+    return turnstile_data
+
+
+def get_hourly_entries(df):
+    df['ENTRIESn_hourly'] = pandas.Series(
+        (df['ENTRIESn'] - df['ENTRIESn'].shift(1)).fillna(1), index=df.index)
+    return df
+
+
+def get_hourly_exits(df):
+    df['EXITSn_hourly'] = pandas.Series(
+        (df['EXITSn'] - df['EXITSn'].shift(1)).fillna(0), index=df.index)
+    return df
+
+
+def time_to_hour(time):
+    hour = int(time.split(':')[0])
+    return hour
+
+
+def reformat_subway_dates(date):
+    date_formatted = datetime.date.strftime(
+        datetime.datetime.strptime(date, '%m-%d-%y'), '%Y-%m-%d')
+    return date_formatted
 
 
 if __name__ == "__main__":
